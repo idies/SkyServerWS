@@ -33,9 +33,9 @@
 <style>
     #if {
         min-width: 100vw;
-        min-height: 15rem;
+        min-height: 20rem;
         overflow-y: auto;
-        background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><text x="5%" y="15%" font-size="20" fill="red">Loading in 10sec...</text></svg>');
+        background:url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg"><text x="5%" y="15%" font-size="20" fill="red">Loading in 20sec, please wait..</text></svg>');
     }
 
 </style>

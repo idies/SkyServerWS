@@ -471,7 +471,7 @@ namespace Sciserver_webService.Common
                                 }
                             }
                             sb.AppendFormat("</tr>");
-                            if (run == true && camcol == true && field == true)
+                            if (run == true && rerun == true && camcol == true && field == true)
                             {
                                 dasFields = true;
                                 runs = new string[NumRows];
@@ -543,18 +543,6 @@ namespace Sciserver_webService.Common
                         var str = "";
                         if (dasFields == true && dasSpectra == true)
                             str = "(s)";
-                        if (dasFields == true)
-                        {
-                            sb.AppendFormat("<tr><td colspan=2><h3>Use the button" + str + " below to upload the results of the above query to the SAW and retrieve the corresponding FITS files:</h3></td></tr>");
-                            sb.AppendFormat("<td><form method='post' action='" + KeyWords.dasUrlBaseImaging + "bulkFields/runCamcolFields'/>\n");
-                            //				Response.Write( "<input type='hidden' name='search' value ='runcamcolfield'/>\n" );
-                            sb.AppendFormat("<input type='hidden' name='runcamcolfields' value='");
-                            for (int i = 0; i < NumRows; i++)
-                                sb.AppendFormat(runs[i] + "," + camcols[i] + "," + fields[i] + "\n");
-                            sb.AppendFormat("'/>\n");
-                            sb.AppendFormat("<input type='submit' name='submit' value='Submit'/>Upload list of fields to SAW\n");
-                            sb.AppendFormat("</form></td>");
-                        }
                         if (dasSpectra == true)
                         {
                             sb.AppendFormat("<tr><td colspan=2><h3>Use the button" + str + " below to upload the results of the above query to the SAW and from there  click <i>Search</i> to download or view the spectra:</h3></td></tr>"); 
@@ -581,11 +569,46 @@ namespace Sciserver_webService.Common
                     }
                     sb.AppendFormat("</TABLE>");
 
+                    if (dasFields == true)
+                    {
+                        int dr = Int32.Parse(ConfigurationManager.AppSettings["DataRelease"].ToLower().Replace("dr", ""));
+                        dr = dr <= 17 ? dr : 17;
+                        string prefix = dr == 12 ? "boss" : "eboss";
+                        sb.AppendFormat("<h3>To download the photometric frames as FITS files, click on the button below to get a file with download URLs, and feed it to rsync by running:</h3>  <mark>rsync -avzL --files-from=download_rsync.txt rsync://dtn.sdss.org/dr" + dr + " dr" + dr + " </mark><br>");
+                        sb.AppendFormat("<input type='button' id='btn' value='Get rsync file'>");
+                        sb.AppendFormat("<script>");
+                        sb.Append(@"document.getElementById('btn').addEventListener('click', function() {
+                        let text = ''; let run = null; let rerun = null; let field = null;
+                        let bands = ['u', 'g', 'r' ,'i', 'z'];");
+                        sb.Append("let data = [");
+                        for (int i = 0; i < NumRows; i++)
+                        {
+                            sb.Append("[" + reruns[i] + "," +  runs[i] +  "," + fields[i] + "," + camcols[i] + "]");
+                            if (i < NumRows - 1)
+                                sb.Append(",");
+                        }
+                        sb.Append("];");
+                        sb.Append(@"for(const d of data){
+                            for(const band of bands){
+                                text = text + '" + prefix + @"/photoObj/frames/' + d[0] + '/' + d[1] + '/' + d[3] + '/frame-' + band + '-' + ('000000' + d[1]).slice(-6) + '-' + d[3] + '-' + ('0000' + d[2]).slice(-4) + '.fits.bz2' + '\n'
+                            }};");
+                        sb.Append(@"
+                        let filename = 'download_rsync.txt';
+                        let element = document.createElement('a');
+                        element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
+                        element.setAttribute('download', filename);
+                        document.body.appendChild(element);
+                        element.click();
+                        document.body.removeChild(element);
+                        }, false);");
+                        sb.AppendFormat("</script>");
+                    }
                 }
                 sb.AppendFormat("<hr>");
             }
             sb.AppendFormat("</BODY></HTML>\n");
-            return sb.ToString();
+            string a = sb.ToString();
+            return a;
         }
 
 

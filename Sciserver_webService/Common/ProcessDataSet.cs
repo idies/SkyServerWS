@@ -571,36 +571,58 @@ namespace Sciserver_webService.Common
 
                     if (dasFields == true)
                     {
+                        DataTable dtt = ds.Tables[t].DefaultView.ToTable( true, new String[] { ds.Tables[t].Columns[rerunI].ColumnName, ds.Tables[t].Columns[runI].ColumnName, ds.Tables[t].Columns[fieldI].ColumnName, ds.Tables[t].Columns[camcolI].ColumnName });
+
                         int dr = Int32.Parse(ConfigurationManager.AppSettings["DataRelease"].ToLower().Replace("dr", ""));
                         dr = dr <= 17 ? dr : 17;
                         string prefix = dr == 12 ? "boss" : "eboss";
-                        sb.AppendFormat("<h3>To download the photometric frames as FITS files, click on the button below to get a file with download URLs, and feed it to rsync by running:</h3>  <mark>rsync -avzL --files-from=download_rsync.txt rsync://dtn.sdss.org/dr" + dr + " dr" + dr + " </mark><br>");
-                        sb.AppendFormat("<input type='button' id='btn' value='Get rsync file'>");
+                        sb.AppendFormat("<h3>To download the photometric frames as FITS files, click on one of the buttons below to get a file with download URLs, and feed it to <mark>rsync</mark> or <mark>wget</mark> by running:</h3>");
+                        sb.AppendFormat("<mark id='rsynctext'>rsync -avzL --files-from=download_rsync.txt rsync://dtn.sdss.org/dr" + dr + " dr" + dr + "</mark>&nbsp;&nbsp;<span title='Click to copy command' onclick='copyToClipboard(1)' style='color: #8080ff; cursor: hand;'>&#x26D8;</span> <br>");
+                        sb.AppendFormat("<input type='button' id='btn1' value='Get rsync file'><br><br>");
+                        sb.AppendFormat("<mark id='wgettext'>wget -i download_urls.txt</mark>&nbsp;&nbsp;<span title='Click to copy command' onclick='copyToClipboard(2)' style='color: #8080ff; cursor: hand;'>&#x26D8;</span><br>");
+                        sb.AppendFormat("<input type='button' id='btn2' value='Get wget file'>");
                         sb.AppendFormat("<script>");
-                        sb.Append(@"document.getElementById('btn').addEventListener('click', function() {
+                        sb.Append(@"document.getElementById('btn1').addEventListener('click', function() { downloadFile('') }, false); document.getElementById('btn2').addEventListener('click', function() { downloadFile('https://data.sdss.org/sas/dr" + dr + "/') }, false);");
+                        sb.Append(@"function downloadFile(urlPrefix){
+
                         let text = ''; let run = null; let rerun = null; let field = null;
                         let bands = ['u', 'g', 'r' ,'i', 'z'];");
                         sb.Append("let data = [");
-                        for (int i = 0; i < NumRows; i++)
+                        for (int i = 0; i < dtt.Rows.Count; i++)
                         {
-                            sb.Append("[" + reruns[i] + "," +  runs[i] +  "," + fields[i] + "," + camcols[i] + "]");
-                            if (i < NumRows - 1)
+                            //sb.Append("[" + reruns[i] + "," +  runs[i] +  "," + fields[i] + "," + camcols[i] + "]");
+                            sb.Append("[" + dtt.Rows[i][0].ToString() + "," + dtt.Rows[i][1].ToString() + "," + dtt.Rows[i][2].ToString() + "," + dtt.Rows[i][3].ToString() + "]");
+                            if (i < dtt.Rows.Count - 1)
                                 sb.Append(",");
                         }
                         sb.Append("];");
                         sb.Append(@"for(const d of data){
                             for(const band of bands){
-                                text = text + '" + prefix + @"/photoObj/frames/' + d[0] + '/' + d[1] + '/' + d[3] + '/frame-' + band + '-' + ('000000' + d[1]).slice(-6) + '-' + d[3] + '-' + ('0000' + d[2]).slice(-4) + '.fits.bz2' + '\n'
+                                text = text + urlPrefix + '" + prefix + @"/photoObj/frames/' + d[0] + '/' + d[1] + '/' + d[3] + '/frame-' + band + '-' + ('000000' + d[1]).slice(-6) + '-' + d[3] + '-' + ('0000' + d[2]).slice(-4) + '.fits.bz2' + '\n'
                             }};");
                         sb.Append(@"
-                        let filename = 'download_rsync.txt';
+                        const filename = urlPrefix == '' ? 'download_rsync.txt' : 'download_urls.txt';
                         let element = document.createElement('a');
                         element.setAttribute('href', 'data:text/plain;charset=utf-8,' + encodeURIComponent(text));
                         element.setAttribute('download', filename);
                         document.body.appendChild(element);
                         element.click();
                         document.body.removeChild(element);
-                        }, false);");
+                        };
+
+                        function copyToClipboard(which) {
+                            const stringContent = which == 1 ? document.getElementById('rsynctext').innerText : document.getElementById('wgettext').innerText;
+                            const el = document.createElement('textarea');
+                            el.value = stringContent;
+                            el.setAttribute('readonly', '');
+                            el.style.position = 'absolute';
+                            el.style.left = '-9999px';
+                            document.body.appendChild(el);
+                            el.select();
+                            document.execCommand('copy');
+                            document.body.removeChild(el);
+                        }
+                        ");
                         sb.AppendFormat("</script>");
                     }
                 }
